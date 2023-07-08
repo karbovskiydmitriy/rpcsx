@@ -8,6 +8,7 @@
 #include "thread.hpp"
 #include "vfs.hpp"
 #include "vm.hpp"
+#include "code-generator.hpp"
 
 #include <elf.h>
 #include <filesystem>
@@ -221,6 +222,45 @@ static void onSysExit(orbis::Thread *thread, int id, uint64_t *args,
               thread->retval[0], thread->retval[1]);
 }
 
+void stubProcedure() {
+  std::printf("Hello, stub!\n");
+}
+
+static void patchSyscall(orbis::utils::Ref<orbis::Module> module) {
+  char *scan_start = (char *)module->segments[0].addr;
+  char *scan_end = (char *)scan_start + module->segments[0].size;
+
+  // MOV  R10, RCX
+  // SYSCALL
+  uint8_t sig[] = { 0x49, 0x89, 0xca, 0x0f, 0x05 };
+
+  int patches = 0;
+
+  // TODO queryProtection
+  rx::vm::protect(module->segments[0].addr, module->segments[0].size, rx::vm::kMapProtCpuAll);
+
+  for (char *ptr = scan_start; ptr < scan_end - sizeof(sig); ptr++)
+  {
+    if (std::memcmp(ptr, sig, sizeof(sig)) == 0)
+    {
+      CodeGenerator codegen;
+
+      void *proc_start = (void *)((uint64_t)ptr & ~0x000000000000001F); // 00011111b, align to 16 bytes
+
+      codegen.makeAbsoluteTrampoline((uint64_t)&stubProcedure);
+
+      std::memcpy(proc_start, codegen.getCode(), codegen.getSize());
+
+      patches++;
+    }
+  }
+
+  // causes a segfault
+  //rx::vm::protect(libkernel->segments[0].addr, libkernel->segments[0].size, rx::vm::kMapProtGpuRead || rx::vm::kMapProtCpuExec);
+
+  std::printf("total SYSCALL instructions patched: %d\n", patches);
+}
+
 static int ps4Exec(orbis::Process *mainProcess,
                    orbis::utils::Ref<orbis::Module> executableModule,
                    std::span<const char *> argv, std::span<const char *> envp) {
@@ -271,6 +311,8 @@ static int ps4Exec(orbis::Process *mainProcess,
 
   auto libkernel = rx::linker::loadModuleFile(
       "/system/common/lib/libkernel_sys.sprx", mainProcess);
+
+  patchSyscall(libkernel);
 
   // *reinterpret_cast<std::uint32_t *>(
   //     reinterpret_cast<std::byte *>(libkernel->base) + 0x6c2e4) = ~0;

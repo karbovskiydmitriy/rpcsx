@@ -1,6 +1,7 @@
 add_library(standalone-config INTERFACE)
 target_include_directories(standalone-config INTERFACE orbis-kernel-config)
 add_library(orbis::kernel::config ALIAS standalone-config)
+include_directories(../3rdparty)
 
 add_executable(rpcsx-os 
   iodev/dce.cpp
@@ -28,6 +29,7 @@ add_executable(rpcsx-os
   io-device.cpp
   thread.cpp
   vfs.cpp
+  code-generator.cpp
 )
 
 target_include_directories(rpcsx-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

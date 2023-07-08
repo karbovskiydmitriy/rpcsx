@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(3rdparty/crypto)
+add_subdirectory(3rdparty/xbyak)
 add_subdirectory(orbis-kernel)
 add_subdirectory(rpcsx-os)
 add_subdirectory(rpcsx-gpu)
