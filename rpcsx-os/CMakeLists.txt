@@ -1,7 +1,7 @@
 add_library(standalone-config INTERFACE)
 target_include_directories(standalone-config INTERFACE orbis-kernel-config)
 add_library(orbis::kernel::config ALIAS standalone-config)
-include_directories(../3rdparty)
+include_directories(../3rdparty/xbyak)
 
 add_executable(rpcsx-os 
   iodev/dce.cpp
